@@ -1,6 +1,8 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
+using System.Globalization;
 using System.Linq;
+using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -9,7 +11,7 @@ namespace Xymanek.ReactiveUI.Toolkit.Roslyn;
 // *Inspired* by
 // https://github.com/CommunityToolkit/dotnet/blob/96517eace88d95ec52a881e3e1ed74ea51436b40/CommunityToolkit.Mvvm.SourceGenerators/ComponentModel/ObservablePropertyGenerator.cs
 [Generator]
-public class ReactivePropertySourceGenerator : IIncrementalGenerator
+public partial class ReactivePropertySourceGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -24,7 +26,7 @@ public class ReactivePropertySourceGenerator : IIncrementalGenerator
                 static (context, _) => ((FieldDeclarationSyntax)context.Node)
                     .Declaration
                     .Variables
-                    .Select(v => (IFieldSymbol)context.SemanticModel.GetDeclaredSymbol(v)!)
+                    .Select(v => (IFieldSymbol)ModelExtensions.GetDeclaredSymbol(context.SemanticModel, v)!)
             )
             .SelectMany(static (item, _) => item);
 
@@ -37,34 +39,56 @@ public class ReactivePropertySourceGenerator : IIncrementalGenerator
         // From this point I diverge from ObservablePropertyGenerator's logic, since this generator (currently)
         // is much simpler and I don't want to pull in a bunch of their utility classes.
 
-        // Group the fields by their declaration types (since that's how we will create the generated code files)
-        IncrementalValuesProvider<(INamedTypeSymbol Type, ImmutableArray<IFieldSymbol> Fields)> groupedFieldSymbols =
-            fieldSymbolsWithAttribute
-                .Select(static (symbol, _) => (symbol.ContainingType, symbol))
-                .Group();
+        // Separate fields into those which are declared in reactive objects and those which are not
+        IncrementalValuesProvider<(bool IsValid, IFieldSymbol Symbol)> fieldValidityPairs = fieldSymbolsWithAttribute
+            .Select(static (symbol, _) => (IsReactiveObject(symbol.ContainingType), symbol));
 
         // Generate properties only for reactive objects. TODO: error when in wrong class
-        IncrementalValuesProvider<(INamedTypeSymbol Type, ImmutableArray<IFieldSymbol> Fields)> validGroupedFieldSymbols
-            = groupedFieldSymbols.Where(static tuple => IsReactiveObject(tuple.Type));
+        // Group the fields by their declaration types (since that's how we will create the generated code files)
+        IncrementalValuesProvider<(INamedTypeSymbol Type, ImmutableArray<IFieldSymbol> Fields)> groupedFieldSymbols =
+            fieldValidityPairs
+                .Where(tuple => tuple.IsValid)
+                .Select((tuple, _) => (tuple.Symbol.ContainingType, tuple.Symbol))
+                .Group();
+
+        context.RegisterSourceOutput(groupedFieldSymbols, ProduceProperties);
     }
 
     private const string ReactiveObjectBaseTypeFullyQualified = "global::ReactiveUI.IReactiveObject";
 
     [Pure]
     private static bool IsReactiveObject(INamedTypeSymbol typeSymbol)
+        => typeSymbol.AllInterfaces.Any(i => i.HasFullyQualifiedName(ReactiveObjectBaseTypeFullyQualified));
+
+    private static void ProduceProperties(
+        SourceProductionContext context,
+        (INamedTypeSymbol Type, ImmutableArray<IFieldSymbol> Fields) tuple
+    )
     {
-        for (
-            INamedTypeSymbol? parent = typeSymbol;
-            parent is not null;
-            parent = parent.ContainingType
-        )
+        CompilationUnitSyntax compilationUnit = CodeGenHelpers.BuildPartial(
+            tuple.Type,
+            tuple.Fields.Select(CreatePropertyFromField).ToImmutableArray()
+        );
+
+        string fileNameWithoutExtension = tuple.Type.GetFullMetadataNameForFileName();
+        
+        context.AddSource($"{fileNameWithoutExtension}.g.cs", compilationUnit.GetText(Encoding.UTF8));
+    }
+
+    // https://github.com/CommunityToolkit/dotnet/blob/96517eace88d95ec52a881e3e1ed74ea51436b40/CommunityToolkit.Mvvm.SourceGenerators/ComponentModel/ObservablePropertyGenerator.Execute.cs#L999-L1019
+    private static string GetGeneratedPropertyName(IFieldSymbol fieldSymbol)
+    {
+        string propertyName = fieldSymbol.Name;
+
+        if (propertyName.StartsWith("m_"))
         {
-            if (parent.HasFullyQualifiedName(ReactiveObjectBaseTypeFullyQualified))
-            {
-                return true;
-            }
+            propertyName = propertyName.Substring(2);
+        }
+        else if (propertyName.StartsWith("_"))
+        {
+            propertyName = propertyName.TrimStart('_');
         }
 
-        return false;
+        return $"{char.ToUpper(propertyName[0], CultureInfo.InvariantCulture)}{propertyName.Substring(1)}";
     }
 }
