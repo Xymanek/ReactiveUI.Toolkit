@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xymanek.ReactiveUI.Toolkit", "Xymanek.ReactiveUI.Toolkit\Xymanek.ReactiveUI.Toolkit.csproj", "{21AAFA70-7711-4308-895D-5F551D18E060}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xymanek.ReactiveUI.Toolkit.Demo.ViewModels", "Xymanek.ReactiveUI.Toolkit.Demo.ViewModels\Xymanek.ReactiveUI.Toolkit.Demo.ViewModels.csproj", "{3C0D44AF-06EF-4B1E-9CB5-B10DD5DD5BA2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{21AAFA70-7711-4308-895D-5F551D18E060}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{21AAFA70-7711-4308-895D-5F551D18E060}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{21AAFA70-7711-4308-895D-5F551D18E060}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C0D44AF-06EF-4B1E-9CB5-B10DD5DD5BA2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C0D44AF-06EF-4B1E-9CB5-B10DD5DD5BA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C0D44AF-06EF-4B1E-9CB5-B10DD5DD5BA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C0D44AF-06EF-4B1E-9CB5-B10DD5DD5BA2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
