@@ -37,10 +37,13 @@ public partial class ReactivePropertySourceGenerator
         AccessorDeclarationSyntax setter = AccessorDeclaration(SyntaxKind.SetAccessorDeclaration)
             .WithExpressionBody(ArrowExpressionClause(setAndRaiseInvocation))
             .WithSemicolonToken(Token(SyntaxKind.SemicolonToken));
-        
+
         return PropertyDeclaration(propertyType, propertyIdentifier)
             .AddGeneratedByAttributes(typeof(ReactivePropertySourceGenerator))
             .AddModifiers(Token(SyntaxKind.PublicKeyword))
-            .AddAccessorListAccessors(getter, setter);
+            .AddAccessorListAccessors(getter, setter)
+            .WithLeadingTrivia(TriviaList(
+                Comment($"/// <inheritdoc cref=\"{sourceField.Name}\"/>")
+            ));
     }
 }

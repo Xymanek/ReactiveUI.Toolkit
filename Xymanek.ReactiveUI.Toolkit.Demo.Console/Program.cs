@@ -18,3 +18,5 @@ userInfoViewModel.Username = "user2";
 userInfoViewModel.Username = "user3";
 
 Console.WriteLine("Final username: " + userInfoViewModel.Username);
+
+userInfoViewModel.DisplayName = "";
