@@ -43,15 +43,31 @@ public partial class ReactivePropertySourceGenerator : IIncrementalGenerator
         IncrementalValuesProvider<(bool IsValid, IFieldSymbol Symbol)> fieldValidityPairs = fieldSymbolsWithAttribute
             .Select(static (symbol, _) => (IsReactiveObject(symbol.ContainingType), symbol));
 
-        // Generate properties only for reactive objects. TODO: error when in wrong class
+        IncrementalValuesProvider<Diagnostic> wrongClassDiagnostics = fieldValidityPairs
+            .Where(static tuple => !tuple.IsValid)
+            .Select(static (tuple, _) => Diagnostic.Create(
+                DiagnosticDescriptors.ReactivePropertyInNotReactiveClass,
+                tuple.Symbol.Locations.FirstOrDefault(), // TODO: find the attribute location instead
+                tuple.Symbol.ContainingType,
+                tuple.Symbol.Name
+            ));
+
+        context.RegisterSourceOutput(wrongClassDiagnostics, ProduceDiagnostics);
+
+        // Generate properties only for reactive objects.
         // Group the fields by their declaration types (since that's how we will create the generated code files)
         IncrementalValuesProvider<(INamedTypeSymbol Type, ImmutableArray<IFieldSymbol> Fields)> groupedFieldSymbols =
             fieldValidityPairs
-                .Where(tuple => tuple.IsValid)
-                .Select((tuple, _) => (tuple.Symbol.ContainingType, tuple.Symbol))
+                .Where(static tuple => tuple.IsValid)
+                .Select(static (tuple, _) => (tuple.Symbol.ContainingType, tuple.Symbol))
                 .Group();
 
         context.RegisterSourceOutput(groupedFieldSymbols, ProduceProperties);
+    }
+
+    private static void ProduceDiagnostics(SourceProductionContext context, Diagnostic diagnostic)
+    {
+        context.ReportDiagnostic(diagnostic);
     }
 
     private const string ReactiveObjectBaseTypeFullyQualified = "global::ReactiveUI.IReactiveObject";
@@ -71,7 +87,7 @@ public partial class ReactivePropertySourceGenerator : IIncrementalGenerator
         );
 
         string fileNameWithoutExtension = tuple.Type.GetFullMetadataNameForFileName();
-        
+
         context.AddSource($"{fileNameWithoutExtension}.g.cs", compilationUnit.GetText(Encoding.UTF8));
     }
 

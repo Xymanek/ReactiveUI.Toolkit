@@ -7,14 +7,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="ReactiveUI" Version="18.3.1"/>
+        <PackageReference Include="ReactiveUI" Version="18.3.1" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Xymanek.ReactiveUI.Toolkit\Xymanek.ReactiveUI.Toolkit.csproj"/>
-        <ProjectReference Include="..\Xymanek.ReactiveUI.Toolkit.Roslyn\Xymanek.ReactiveUI.Toolkit.Roslyn.csproj"
-                          ReferenceOutputAssembly="false"
-                          OutputItemType="Analyzer"/>
+        <ProjectReference Include="..\Xymanek.ReactiveUI.Toolkit\Xymanek.ReactiveUI.Toolkit.csproj" />
+        <ProjectReference Include="..\Xymanek.ReactiveUI.Toolkit.Roslyn\Xymanek.ReactiveUI.Toolkit.Roslyn.csproj" ReferenceOutputAssembly="false" OutputItemType="Analyzer" />
     </ItemGroup>
 
 </Project>
